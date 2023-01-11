@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.dms.mapper.DmsUserDao">
+
+    <resultMap type="com.example.dms.entity.DmsUser" id="DmsUserMap">
+        <result property="userId" column="user_id" jdbcType="INTEGER"/>
+        <result property="userName" column="user_name" jdbcType="VARCHAR"/>
+        <result property="password" column="PASSWORD" jdbcType="VARCHAR"/>
+        <result property="salt" column="salt" jdbcType="VARCHAR"/>
+        <result property="state" column="state" jdbcType="VARCHAR"/>
+        <result property="blogUrl" column="blog_url" jdbcType="VARCHAR"/>
+        <result property="blogRemark" column="blog_remark" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <!--查询单个-->
+    <select id="queryById" resultMap="DmsUserMap">
+        select
+          user_id, user_name, PASSWORD, salt, state, blog_url, blog_remark
+        from springboot.dms_user
+        where user_id = #{userId}
+    </select>
+
+    <!--查询指定行数据-->
+    <select id="queryAllByLimit" resultMap="DmsUserMap">
+        select
+          user_id, user_name, PASSWORD, salt, state, blog_url, blog_remark
+        from springboot.dms_user
+        limit #{offset}, #{limit}
+    </select>
+
+    <!--通过实体作为筛选条件查询-->
+    <select id="queryAll" resultMap="DmsUserMap">
+        select
+          user_id, user_name, PASSWORD, salt, state, blog_url, blog_remark
+        from springboot.dms_user
+        <where>
+            <if test="userId != null">
+                and user_id = #{userId}
+            </if>
+            <if test="userName != null and userName != ''">
+                and user_name = #{userName}
+            </if>
+            <if test="password != null and password != ''">
+                and PASSWORD = #{password}
+            </if>
+            <if test="salt != null and salt != ''">
+                and salt = #{salt}
+            </if>
+            <if test="state != null and state != ''">
+                and state = #{state}
+            </if>
+            <if test="blogUrl != null and blogUrl != ''">
+                and blog_url = #{blogUrl}
+            </if>
+            <if test="blogRemark != null and blogRemark != ''">
+                and blog_remark = #{blogRemark}
+            </if>
+        </where>
+    </select>
+
+    <!--新增所有列-->
+    <insert id="insert" keyProperty="userId" useGeneratedKeys="true">
+        insert into springboot.dms_user ( user_name, PASSWORD, salt, state, blog_url, blog_remark )
+        values ( #{userName}, #{password}, #{salt}, #{state}, #{blogUrl}, #{blogRemark} )
+    </insert>
+
+    <!--通过主键修改数据-->
+    <update id="update">
+        update springboot.dms_user
+        <set>
+            <if test="userName != null and userName != ''">
+                user_name = #{userName},
+            </if>
+            <if test="password != null and password != ''">
+                PASSWORD = #{password},
+            </if>
+            <if test="salt != null and salt != ''">
+                salt = #{salt},
+            </if>
+            <if test="state != null and state != ''">
+                state = #{state},
+            </if>
+            <if test="blogUrl != null and blogUrl != ''">
+                blog_url = #{blogUrl},
+            </if>
+            <if test="blogRemark != null and blogRemark != ''">
+                blog_remark = #{blogRemark},
+            </if>
+        </set>
+        where user_id = #{userId}
+    </update>
+
+    <!--通过主键删除-->
+    <delete id="deleteById">
+        delete from springboot.dms_user where user_id = #{userId}
+    </delete>
+
+    <!--新增所有列-->
+    <insert id="batchInsert"  useGeneratedKeys="true">
+        <foreach collection="userList" item="item" separator=";">
+            insert into dms_user ( user_name,password,salt,state,blog_url,blog_remark )
+            values
+            (#{item.userName},#{item.password},#{item.salt},#{item.state},#{item.blogUrl},#{item.blogRemark})
+        </foreach>
+
+    </insert>
+
+
+    <update id="batchUpdate" parameterType="java.util.List">
+        <foreach collection="userList" item="item" index="index" separator=";">
+            update dms_user
+            <set>
+            <if test='item.userName !=null and item.userName !=""'>
+                user_name = #{item.userName},
+            </if>
+            <if test='item.password !=null and item.password !=""'>
+                password=#{item.password},
+            </if>
+            <if test='item.salt !=null and item.salt !=""'>
+                salt=#{item.salt},
+            </if>
+            <if test='item.state !=null and item.state !=""'>
+                state=#{item.state},
+            </if>
+            <if test='item.blogUrl !=null and item.blogUrl !=""'>
+                blog_url=#{item.blogUrl}
+            </if>
+           </set>
+            where user_id = #{item.userId}
+        </foreach>
+
+    </update>
+
+</mapper>

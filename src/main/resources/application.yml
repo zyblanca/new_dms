@@ -1,0 +1,66 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: dms
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/springboot?useUnicode=true&characterEncoding=utf-8&useSSL=true&allowMultiQueries=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC
+    username: root
+    password: root
+  messages:
+    basename: i8n/Messages,i8n/messages_en_US,i8n/messages_zh_CN
+
+#  rabbitmq:
+#    host: 127.0.0.1
+#    port: 5672
+#    username: guest
+#    password: guest
+#    virtual-host: zhouyongVirtual
+#    publisher-confirm-type: correlated
+#    publisher-returns: true
+#    listener:
+#      simple:
+#        auto-startup: true
+#        acknowledge-mode: manual
+#        concurrency: 1
+#        max-concurrency: 1
+#        retry:
+#          enabled: true
+#          max-interval: 3
+
+mybatis:
+  mapper-locations: classpath:/mapper/*.xml
+  type-aliases-package: com.example.dms.entity
+
+task:
+  schedue:
+    crom : "-"
+    one : "-"
+
+#redis:
+#  host: 127.0.0.1
+#  port: 6379
+#  timeout: 6000
+#  jedis:
+#    pool:
+#      max-active: 10
+#      max-idle: 8
+#      max-wait: 3
+
+netty:
+  boss: 1
+  worker: 4
+  timeout: 6000
+  port: 7000
+  portSalve: 7001
+  host: 127.0.0.1
+
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+
+
+

@@ -1,0 +1,28 @@
+1.centos系统安装xftp传输文件工具
+yum install lrzsz
+
+2.查看服务状态；
+
+netstat 查看端口是否被占用、
+一、利用进程来查看 
+命令里 ps -aux ｜ grep xxx 是查看某个进程或者服务是否存在。 
+-A 列出所有的进程（等价于-e） 
+-w 显示加宽可以显示较多的资讯 
+-au 显示较详细的资讯 
+-aux 显示所有包含其他使用者的行程
+二、利用services命令 
+1.查看单个服务的运行状态： 
+service 服务名 status 
+如：[root@localhost ~]# service sshd status 
+openssh-daemon (pid 3701) 正在运行… 
+2.查看所有服务的运行状态： 
+service –status -all 
+三，操作进程
+netstat查所有端口；
+kill  -9 pid
+
+药芳服务器信息
+47.115.172.226
+root Wanyaofang520.
+
+
