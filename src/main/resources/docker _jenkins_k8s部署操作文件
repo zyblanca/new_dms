@@ -1,0 +1,309 @@
+列出镜像的命令
+docker image command
+build构建镜像
+pull拉去
+load 导入
+save到出
+push 推送到仓库
+inspect 详情
+rm 删除
+ls 列表
+
+列出卷命令
+docker volums command
+create 创建
+rm 删除
+ls
+inspect
+
+列出网络命令
+docker network command
+create
+ls
+rm
+connection将容器加入网络
+
+列出容器
+docker  container command
+run 创建并启动
+stop 停止容器
+kill 杀掉容器
+restart 重启容器
+logs 查看启动日志
+
+docker run --name mysql --rm --net my_net --volume ${pwd}:/temp --it mysql bash
+
+ls /te 查询关联卷目录
+/temp /temp
+ls 和宿主机目录一样
+
+
+
+
+
+jenkins + docker + springboot 自动化部署项目
+
+步骤
+服务A
+1.搭建gitlab私有代码仓库
+
+服务B
+1安装jenkins
+ a.先在服务器安装jdk(jenkins是java开发的)
+ b.安装jenkins
+ c.配置jdk,maven,git新增凭证等配置
+ d.安装docker容器引擎
+ e.编写dockerFile文件->docker build --build-arg JAR-FILE= *.jar -t 镜像name:v版本 .（当前dockerFile）
+ f. 给镜像打标签 docker tag 镜像name:v版本 harbor(ip:port)/harbor项目/镜像name:v版本
+ f.将镜像推送至harbor docker push harbor(ip:port)/harbor项目/镜像name:v版本
+   注意docker 配置文件新增可信任服务地址harbor地址
+   登入harbor仓库 docker login -u name -p password harbor(ip:port)
+  重新推送
+
+服务C
+ a.安装harbor->创建项目->指定用户
+ b.安装docker
+
+服务D
+1.安装docker ->配置docker deamon.json文件(修改完配置要重启systemctl restart docker)
+  a.docker login -u name -p password harbor(ip:port)
+  b.下载镜像 docker pull   harbor(ip:port)/harbor项目/镜像name:v版本
+
+
+jenkins + docker + springboot
+
+1.现在gitlab上创建项目-> 本地git->add->commit-remote->指定git上项目地址(名称要一样)
+2.创建流水线->采用Pipeline script from SCM定义-> 指定项目中Jenkinsfile文件
+   step1注意流水线语法提示checkout ：Check out from version control 获取git 项目脚本
+   def name = value  通过 “${name }"引用
+
+   step2 代码审查（general) ->添加差数->choice parameter   多个项目，多个项目的注释
+
+   step3. 编译，安装公共子工程 sh "mvn -f  指定的项目  clean install "
+
+   step4. 编译，打包子项目 并创建镜像
+           sh "mvn -f  ${project_name}  clean package dockerfile:build"
+            给镜像打标签
+            def tag = "latest"
+           def imageName = "${project_name}:${tag}"
+           sh "docker tag 镜像name:v版本 harbor(ip:port)/harbor项目/镜像name:v版本"
+
+           withCredentials:Bind credentials to variables 脚本
+            withCredentials:Bind (){
+             	登入harbor
+            	sh "docker login -u ${userName} -p ${password} /harbor(ip:port)"
+            	上传镜像
+           	 sh "docker push /harbor(ip:port)/harbor项目/镜像name:v版本"
+           	 sh  "echo  镜像上传成功"
+           }
+
+
+           流水线语法（sshPublisher:send build artifacts over SSH）deploy.sh
+  **************** deploy脚本开始*****************
+  harbor_url=$1
+  harbor_project_name=$2
+  project_name=$3
+  tag=$4
+  port=$5
+集群部署时用
+  profile=$6
+  imageName=$harbor_url/$harbor_project_name/$project_name:$tag
+
+ echo "$imageName"
+
+ containerId=` docker ps -a | grep -w ${project_name}:${tag} | awk  '{print $1}'`
+
+if ["$containerId" != "" ]；then
+   #停掉容器
+   docker stop $containerId
+   #删除容器
+   docker rm $containerId
+   echo "成功删除容器"
+fi
+#查询镜像是否存在，存在则删除
+imageId=`docker image | grep -w $project_name | awk '{print $3}'`
+
+if ["$imageId" != ""] ; then
+ # 删除镜像
+ docker rmi -f $imageId
+ echo "成功删除镜像"
+fi
+#登入harbor
+docker login -u username -p password $harbor_url
+# 下载镜像
+docker pull $imageName
+
+# 启动容器
+ docker run -di -p $port:$port $imageName $profile
+
+echo "容器启动成功"
+
+**************deploy.sh脚本结束*******************88
+
+
+ 3.项目中pom文件中新增dockerfime-maven-plugin
+    dockerfile 文件内容
+    FROM openjdk:8-jdk-alpine
+    ARG JAR_FILE
+    COPY ${JAR_FILE} app.jar
+    EXPOSE 10086
+    ENTRYPOINT ["java","-jar","/app.jar"]  容器执行命令
+
+
+
+常用插件
+git
+maven
+jdk
+sonarQube
+ssh public overflow 连接远程服务并执行脚本
+extended Choice parameter 批量部署任务的插件
+nodejs插件
+
+
+kubernetes(k8s)部署项目
+1安装环境说明
+  主机名称                  ip地址                    安装软件
+  代码托管器服务      192.168.66.100       gitlab-12.4.2
+  docker仓库服务     192.168.66.102      harbor1.9.2
+  k8s-master            192.168.66.101     kube-apiserver,kube-controller-manager,kube-scheduler,docker ,etcd, calico,NFS
+  k8s-node1             192.168.66.103     kubelet,kube-poxy,docker18.06.1-ce
+  k8s-node2             192.168.66.104     kubelet,kube-poxy,docker18.06.1-ce
+2.服务器需要完成域名配置
+     修改服务器的hostname机hosts文件
+     hostnamectl set-hostname k8s-master
+     hostnamectl set-hostname k8s-node1
+     hostnamectl set-hostname k8s-node2
+     cat>>/etc/hosts<<EOF
+     192.168.66.101
+     192.168.66.103
+     192.168.66.104
+     EOF
+ 3.关闭防火墙和关闭selinux
+    systemclt stop firewalld
+    systemclt disable firewalld
+    setenforce 0 临时关闭
+    vi/etc/sysconfig/selinux 永久关闭
+    SELINUX=disable
+ 4. 设置系统参数(内核中的网络参数设置)
+     设置允许路由转发，不对bridge的数据进行处理
+     创建文件
+     vi /etc/sysctl.d/k8s.conf
+     内容如下
+     net.bridge.bridge-nf-call-ip6tables = 1
+     net.bridge.bridge-nf-call-iptables = 1
+     net.ipv4.ip_forward=1
+     vm.swappiness=0
+     执行文件
+     sysctl -p /etc/sysctl.d/k8s.conf
+  5. kube-proxy 开启ipvs(ip虚拟服务)的前置条件
+
+     cat >/etc/sysconfig/modules/ipvs.modules << EOF
+    #！/bin/bash
+    modprobe -- ip_vs
+    modprobe -- ip_vs_wrr
+    modprobe -- ip_vssh
+    modprobe -- ip_vs_nf_conntrack_ipv4
+    EOF
+    chmod 775 /etc/sysconfig/modules/ipvs.modules && bash
+    /etc/sysconfig/modules/ipvs.modules && lsmod | grep -e ip_vs -e nf_conntrack_ipv4
+
+   6.所有节点关闭swap
+     swapoff-a
+     vi /etc/fstab 永久关闭
+     注释掉以下指端
+    # /dev/mapper/cl-swap swap      swap  defaults 0 0
+
+    7. 安装kubelete, bubeadm, bubectl
+      kubeadm: 用来初始化集群指令
+      kubelet: 在集群中的每个节点上用来启动pod和容器
+      kubectl:用来与集群通信的命令行工具
+      清空yum缓存:
+      yum clean all
+      设置yum安装源:
+      cat<< EOF >/etc/yum.repos.d/kubernetes.repo
+      name=kubernetes
+      baseurl=https://mirrors.aliyun.com/kuberntes/yum/repos/kubernetes-e17-x86_64/
+      enabled=1
+      gpgcheck=0
+      repo_gpgcheck=0
+     gpgkey=https://mirrors.aliyun.com/kuberntes/yum/doc/yum-key.gpg
+     https://mirrors.aliyun.com/kuberntes/yum/doc/rpm-package-key.gpg
+     EOF
+
+     安装:
+     yum install -y kubelet kubeadm  kubectl
+     kubelet 设置开机启动(注意先不启动，现在启动会报错)
+     systemctl enable kubelet
+     先不执行等master上面组件配置完后再执行
+     systemctl start kubelet
+     查看版本
+     kubelet --version
+     安装的是目前最新版本：kubernetes v1.16.3
+
+    8.Master节点需要完成初始化命令:
+   1).主节点初始化命令
+     kubeadm init --kubernets-version=1.17.0 \
+     --apiserver-advertise-address=192.168.66.10 \
+     --service-cidr=10.1.0.0/16 \
+     -- pod-network-cidr=10.24.0.0.16
+     初始化成功后根据打印出的命令执行操作
+    复制需要在node节点执行注入Master的执行语句
+     kubeadm join --------
+    2).启动kubelet
+        systemcl restart kubelet
+
+    3).配置kubectl 工具
+     执行下面命令
+     mkdir -= $HOME/.kube
+     sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+     sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+     注意apiserver-advertise-address这个地址必须是master机器的ip
+     常见错误；
+     a.错误1[WARNING isDockerSystemCheck]:delected "cgroup" as the Docker cgroup driver
+       作为docker cgroup驱动程序，kubernetes推荐的docker驱动程序是“systemd”
+       解决方案：修改docker的配置：vi/etc/docker/deamon.json,加入{"exec-opts":[native.cgroupdriver=systemd]}
+
+     4).安装Calico(，适用于容器、虚拟机和基于主机的本地工作负载。Calico支持广泛的平台，包括Kubernetes、OpenShift、Mirantis Kubernetes Engine (MKE)、OpenStack和裸机服务。)
+      mkdir k8s
+      cd k8s
+      wget https://docs.projectcalico.org/v3.10/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yml
+      替换成10.244.0.0
+      sed -i 's/192.168.0.0/10.244.0.0/g' calico.yaml
+      kubectl apply -f calico.yaml
+
+     5)等待几分钟.查看所有Pod的状态，确保所有pod都是Running状态
+      kubectl get pod --all-namespaces -o wide
+
+  9.Slave节点需要完成，将node节点注册Master上面去
+     先保证开启systemctl start kubelet
+     1）让所有节点加入集群环境
+        使用之前Master节点产生的命令加入集群
+       kubeadm join   加入到Master上
+     2).启动kubelet
+        systemctl restart kubelet
+     3).查看是否集群
+        systemctl get nodes
+        要求状态为已读
+   10.安装和配置
+        NFS简介
+        NFS(network file system)它最大的功能是通过网络让不同机器不同操作系统可以共享彼此之间的文件
+        我们可以利用NFS共享jenkins运行的配置文件，Maven的仓库文件
+
+        NFS安装
+        将NFS下载到Master服务器上
+        1）安装NFS服务（所有k8s节点都要安装）
+           yum install -y nfs-utils
+        2）创建共享目录
+             mkdir -p /opt/nfs/jenkins
+             vi /etc/exports 编写NFS的共享配置
+             内容如下：
+             /opt/nfs/jenkins   *(rw,no_root_squash) *代表对所有IP都开发此目录rw是读写
+         3）启动服务
+
+          systemctl enable nfs 开机启动
+          systemctl start nfs 启动
+
+         4）查看NFS共享目录
+           showmount -e 192.168.66.101
